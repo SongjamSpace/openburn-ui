@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OPENBURN STATS</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Real-time burn statistics for Solana tokens. Track total value burned, recent transactions, and fees." />
+    <meta name="keywords" content="solana, burn, token, crypto, stats, dashboard, openburn" />
+    <meta name="author" content="Openburn" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://openburn.com/" />
+    <meta property="og:title" content="OPENBURN STATS" />
+    <meta property="og:description" content="Real-time burn statistics for Solana tokens. Track total value burned, recent transactions, and fees." />
+    <meta property="og:image" content="https://openburn.com/og-image.png" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://openburn.com/" />
+    <meta property="twitter:title" content="OPENBURN STATS" />
+    <meta property="twitter:description" content="Real-time burn statistics for Solana tokens. Track total value burned, recent transactions, and fees." />
+    <meta property="twitter:image" content="https://openburn.com/og-image.png" />
+
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="terminal-wrap">
+      <div class="noise"></div>
+      <header class="terminal-header">
+        <div class="dot-group">
+          <span class="dot red"></span>
+          <span class="dot amber"></span>
+          <span class="dot green"></span>
+        </div>
+        <div class="title">OPENBURN STATS DASHBOARD</div>
+        <div id="apiStatus" class="status down">DISCONNECTED</div>
+      </header>
+      <section class="brand-strip">
+        <div id="brandMatrix" class="brand-matrix" aria-label="openburn logo"></div>
+      </section>
+
+      <main class="terminal-body">
+        <!-- Hero Section: Total Value Burned -->
+        <section class="pane pane-hero">
+          <h2>Total Pump.fun Value Burned</h2>
+          <div class="hero-value" id="totalValueBurned">Loading...</div>
+          <div class="hero-sub" id="totalTransactions">0 Transactions</div>
+        </section>
+
+        <!-- Token Details Section (Hidden by default) -->
+        <section id="tokenDetails" class="pane hidden">
+             <h2>Token Details</h2>
+             <div class="details-grid" id="detailsGrid">
+                 <!-- Populated by JS -->
+             </div>
+        </section>
+
+        <!-- Data Table: Recent Burns -->
+        <section class="pane pane-history">
+          <div class="pane-header">
+            <h2>Recent Burns</h2>
+            <div id="navControls" class="nav-controls hidden">
+              <button id="btnBack" class="btn-text">&lt; BACK TO ALL</button>
+            </div>
+          </div>
+          <div class="table-container">
+            <table class="terminal-table">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Token</th>
+                  <th class="right">Amount</th>
+                  <th class="right">
+                    <span id="valueHeader" class="toggle-header" role="button" tabindex="0">Value (USD) ⟳</span>
+                  </th>
+                  <th class="center">Links</th>
+                </tr>
+              </thead>
+              <tbody id="burnHistoryBody">
+                <tr>
+                  <td colspan="5" class="center">Waiting for data...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
