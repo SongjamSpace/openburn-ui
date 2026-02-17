@@ -79,7 +79,7 @@ function formatDate(timestamp) {
 }
 
 function renderStats(stats) {
-    ui.totalValueBurned.textContent = formatCurrency(stats.totalValueBurnedUsd);
+    ui.totalValueBurned.textContent = formatSol(stats.totalSolBurned);
     ui.totalTransactions.textContent = `${formatNumber(stats.totalTransactions)} Transactions`;
 }
 
