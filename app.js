@@ -1,7 +1,6 @@
 const API_BASE = "https://openburn-moltspaces-api-547962548252.us-central1.run.app/api/burn/stats"; // Base API URL
 const APP_NAME = "OPENBURN";
 let currentToken = null;
-let showSolValue = false; // Toggle state for Value column
 
 const ui = {
   brandMatrix: document.getElementById("brandMatrix"),
@@ -11,10 +10,10 @@ const ui = {
   burnHistoryBody: document.getElementById("burnHistoryBody"),
   navControls: document.getElementById("navControls"),
   btnBack: document.getElementById("btnBack"),
+  btnRefresh: document.getElementById("btnRefresh"),
   heroTitle: document.querySelector(".pane-hero h2"),
   tokenDetails: document.getElementById("tokenDetails"),
   detailsGrid: document.getElementById("detailsGrid"),
-  valueHeader: document.getElementById("valueHeader"),
 };
 
 // ... DOT_FONT and helper functions (formatCurrency, formatNumber, formatDate) remain the same ...
@@ -105,8 +104,6 @@ function renderTokenDetails(data) {
         { label: "Token Symbol", value: sample.tokenSymbol || "Unknown" },
         { label: "Token Address", value: currentToken, link: `https://pump.fun/${currentToken}`, linkText: currentToken },
         { label: "Wallet", value: sample.wallet || "-", link: sample.wallet ? `https://solscan.io/account/${sample.wallet}` : null, linkText: sample.wallet },
-        { label: "Price (USD)", value: sample.priceUsd ? formatCurrency(sample.priceUsd) : "-" },
-        { label: "Market Cap (USD)", value: sample.marketCapUsd ? formatCurrency(sample.marketCapUsd) : "-" },
     ];
 
     fields.forEach(field => {
@@ -139,6 +136,12 @@ function renderTokenDetails(data) {
 function renderTransactionHistory(burns, claims) {
     ui.burnHistoryBody.innerHTML = "";
 
+    // Hide/show token column header based on view
+    const tokenHeader = document.querySelector('.terminal-table th:nth-child(3)');
+    if (tokenHeader) {
+        tokenHeader.style.display = currentToken ? 'none' : '';
+    }
+
     // Merge burns and claims into a single array with type indicator
     const transactions = [];
     
@@ -163,7 +166,7 @@ function renderTransactionHistory(burns, claims) {
     }
 
     if (transactions.length === 0) {
-        ui.burnHistoryBody.innerHTML = `<tr><td colspan="5" class="center">No recent transactions found.</td></tr>`;
+        ui.burnHistoryBody.innerHTML = `<tr><td colspan="4" class="center">No recent transactions found.</td></tr>`;
         return;
     }
 
@@ -179,6 +182,13 @@ function renderTransactionHistory(burns, claims) {
         const isBurn = transaction.type === 'burn';
         const data = transaction.data;
 
+        // Make row clickable in global view
+        if (!currentToken) {
+            row.style.cursor = "pointer";
+            row.onclick = () => loadToken(data.tokenAddress);
+            row.className = "clickable-row";
+        }
+
         // Time Cell
         const timeCell = document.createElement("td");
         timeCell.textContent = formatDate(data.timestamp);
@@ -189,82 +199,91 @@ function renderTransactionHistory(burns, claims) {
         typeCell.style.color = isBurn ? "#ff4444" : "#44ff44";
         typeCell.style.fontWeight = "bold";
 
-        // Token Cell
+        // Token Cell - hide in single token view
         const tokenCell = document.createElement("td");
         
-        // Make token clickable if we are in global view
-        if (!currentToken) {
-            const tokenAction = document.createElement("span");
-            tokenAction.className = "token-action";
-            tokenAction.textContent = data.tokenSymbol || "Unknown";
-            tokenAction.onclick = () => loadToken(data.tokenAddress);
-            tokenCell.appendChild(tokenAction);
+        if (currentToken) {
+            // In single token view, hide this column
+            tokenCell.style.display = "none";
         } else {
-             // In token view, just show text 
-             tokenCell.textContent = data.tokenSymbol || "Unknown";
+            // In global view, show token symbol
+            const tokenText = document.createElement("span");
+            tokenText.textContent = data.tokenSymbol || "Unknown";
+            tokenCell.appendChild(tokenText);
         }
 
-        // Add Pump.fun link icon
-        const tokenLink = document.createElement("a");
-        tokenLink.href = `https://pump.fun/${data.tokenAddress}`;
-        tokenLink.target = "_blank";
-        tokenLink.className = "external-link-icon";
-        tokenLink.innerHTML = " 💊"; // Pill icon for Pump.fun
-        tokenLink.title = "View on Pump.fun";
-        tokenCell.appendChild(tokenLink);
+        // Add token image instead of pump.fun emoji
+        const tokenImg = document.createElement("img");
+        tokenImg.className = "token-image";
+        tokenImg.src = data.tokenImage || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20'%3E%3Ccircle cx='10' cy='10' r='10' fill='%2352ad8f'/%3E%3C/svg%3E";
+        tokenImg.alt = data.tokenSymbol || "Token";
+        tokenImg.title = `${data.tokenName || 'Unknown'} (${data.tokenSymbol || 'Unknown'})`;
+        tokenImg.onerror = function() {
+            // Fallback to default icon if image fails to load
+            this.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20'%3E%3Ccircle cx='10' cy='10' r='10' fill='%2352ad8f'/%3E%3C/svg%3E";
+        };
+        
+        if (currentToken) {
+            tokenCell.style.display = "none";
+        }
+        
+        tokenCell.appendChild(tokenImg);
 
-        // Amount Cell
+        // Amount Cell - now includes value information
         const amountCell = document.createElement("td");
         amountCell.className = "right";
-        if (isBurn) {
-            amountCell.textContent = data.burnedTokens ? formatNumber(data.burnedTokens) : "-";
-        } else {
-            amountCell.textContent = "-"; // Claims don't have token amounts
-        }
-
-        // Value Cell
-        const valueCell = document.createElement("td");
-        valueCell.className = "right";
         
         if (isBurn) {
-            // Burns show negative values in red
-            valueCell.style.color = "#ff4444";
-            if (showSolValue) {
+            // Check burn transaction status
+            if (data.status === 'failed') {
+                amountCell.textContent = "FAILED";
+                amountCell.style.color = "#ff4444";
+                amountCell.style.fontWeight = "bold";
+            } else if (data.status === 'warning') {
+                // Warning status - show value but with warning color
                 if (data.burnedSol) {
-                    valueCell.textContent = "- " + formatSol(data.burnedSol);
+                    amountCell.textContent = "- " + formatSol(parseFloat(data.burnedSol));
                 } else {
-                     valueCell.textContent = "-";
+                    amountCell.textContent = "-";
                 }
+                amountCell.style.color = "#ffc661"; // warning color
             } else {
-                 valueCell.textContent = "- " + formatCurrency(parseFloat(data.burnedValueUsd || 0));
+                // Success status - show value in red with negative sign
+                if (data.burnedSol) {
+                    amountCell.textContent = "- " + formatSol(parseFloat(data.burnedSol));
+                } else {
+                    amountCell.textContent = "-";
+                }
+                amountCell.style.color = "#ff4444";
             }
         } else {
             // Claims show positive values in green
-            valueCell.style.color = "#44ff44";
-            if (showSolValue) {
-                if (data.feesCollected) {
-                    valueCell.textContent = "+ " + formatSol(parseFloat(data.feesCollected));
-                } else {
-                     valueCell.textContent = "-";
-                }
+            if (data.feesCollected) {
+                amountCell.textContent = "+ " + formatSol(parseFloat(data.feesCollected));
             } else {
-                // For claims, we need to convert SOL to USD if we have price data
-                // For now, just show the SOL value converted to USD if possible
-                // Since we don't have USD value for claims, we'll show SOL value
-                if (data.feesCollected) {
-                    // We don't have USD conversion for claims, so show SOL value
-                    valueCell.textContent = "+ " + formatSol(parseFloat(data.feesCollected));
-                } else {
-                    valueCell.textContent = "-";
-                }
+                amountCell.textContent = "-";
             }
+            amountCell.style.color = "#44ff44";
+        }
+
+        // Tx Cell
+        const txCell = document.createElement("td");
+        if (data.signature) {
+            const txLink = document.createElement("a");
+            txLink.href = `https://solscan.io/tx/${data.signature}`;
+            txLink.target = "_blank";
+            txLink.textContent = "VIEW";
+            txLink.className = "tx-link";
+            txCell.appendChild(txLink);
+        } else {
+            txCell.textContent = "-";
         }
 
         row.appendChild(timeCell);
         row.appendChild(typeCell);
         row.appendChild(tokenCell);
+        row.appendChild(txCell);
         row.appendChild(amountCell);
-        row.appendChild(valueCell);
 
         ui.burnHistoryBody.appendChild(row);
     });
@@ -306,25 +325,6 @@ function updateUIState() {
     }
     updateSeo();
 }
-
-function toggleValueUnit() {
-    showSolValue = !showSolValue;
-    ui.valueHeader.textContent = showSolValue ? "Value (SOL) ⟳" : "Value (USD) ⟳";
-    // Refetch or re-render? Since we only change display, we could just re-render if we stored data.
-    // For simplicity, let's just trigger a data refresh or if we had local data re-render.
-    // Since we don't store "lastData" globally, I'll just call fetchData again which is fast enough or store data.
-    // Let's store data to avoid network hit.
-    if (window.lastData) {
-        renderTransactionHistory(window.lastData.recentBurns, window.lastData.recentClaims);
-    } else {
-        fetchData();
-    }
-}
-
-ui.valueHeader.addEventListener("click", toggleValueUnit);
-ui.valueHeader.addEventListener("keypress", (e) => {
-    if (e.key === "Enter" || e.key === " ") toggleValueUnit();
-});
 
 async function fetchData() {
     ui.apiStatus.textContent = "FETCHING...";
@@ -381,6 +381,7 @@ function loadGlobal() {
 }
 
 ui.btnBack.addEventListener("click", loadGlobal);
+ui.btnRefresh.addEventListener("click", fetchData);
 
 window.addEventListener("popstate", (event) => {
     const token = event.state?.token || new URLSearchParams(window.location.search).get("token");
@@ -396,9 +397,6 @@ function init() {
     renderBrandMatrix(APP_NAME);
     updateUIState();
     fetchData();
-    
-    // Poll every 30 seconds
-    setInterval(fetchData, 30000);
 }
 
 init();

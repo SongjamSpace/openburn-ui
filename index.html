@@ -61,7 +61,10 @@
         <!-- Data Table: Recent Burns -->
         <section class="pane pane-history">
           <div class="pane-header">
-            <h2>Recent Transactions</h2>
+            <div class="header-title-group">
+              <h2>Recent Transactions</h2>
+              <button id="btnRefresh" class="btn-text">⟳ REFRESH</button>
+            </div>
             <div id="navControls" class="nav-controls hidden">
               <button id="btnBack" class="btn-text">&lt; BACK TO ALL</button>
             </div>
@@ -73,15 +76,13 @@
                   <th>Time</th>
                   <th>Type</th>
                   <th>Token</th>
+                  <th>Tx</th>
                   <th class="right">Amount</th>
-                  <th class="right">
-                    <span id="valueHeader" class="toggle-header" role="button" tabindex="0">Value (USD) ⟳</span>
-                  </th>
                 </tr>
               </thead>
               <tbody id="burnHistoryBody">
                 <tr>
-                  <td colspan="5" class="center">Waiting for data...</td>
+                  <td colspan="4" class="center">Waiting for data...</td>
                 </tr>
               </tbody>
             </table>

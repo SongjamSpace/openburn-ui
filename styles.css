@@ -159,7 +159,7 @@ body {
 
 .pane h2 {
   margin: 0 0 16px;
-  font-size: 14px;
+  font-size: 12px;
   color: var(--accent);
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -197,10 +197,13 @@ body {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 16px;
+    flex-wrap: nowrap;
+    gap: 16px;
 }
 
 .pane-header h2 {
     margin: 0;
+    white-space: nowrap;
 }
 
 .table-container {
@@ -235,6 +238,11 @@ body {
 
 .terminal-table tr:hover {
     background: rgba(0, 255, 157, 0.03);
+}
+
+.terminal-table tr.clickable-row:hover {
+    background: rgba(0, 255, 157, 0.08);
+    transition: background 0.15s ease;
 }
 
 .terminal-table .right {
@@ -330,6 +338,8 @@ body {
 .nav-controls {
     display: flex;
     align-items: center;
+    flex-shrink: 0;
+    white-space: nowrap;
 }
 
 .nav-controls.hidden {
@@ -341,12 +351,14 @@ body {
     border: 1px solid var(--accent);
     color: var(--accent);
     font-family: inherit;
-    font-size: 11px;
-    padding: 6px 12px;
+    font-size: 9px;
+    padding: 4px 8px;
     cursor: pointer;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     transition: all 0.2s;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .btn-text:hover {
@@ -382,9 +394,10 @@ body {
 
 /* Token Details */
 .details-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-width: 100%;
 }
 
 .detail-item {
@@ -404,6 +417,7 @@ body {
     font-size: 14px;
     color: var(--ink);
     word-break: break-all;
+    overflow-wrap: anywhere;
 }
 
 .detail-value a {
@@ -431,4 +445,54 @@ body {
 
 .toggle-header:hover {
     color: var(--accent);
+}
+
+/* Token Images */
+.token-image {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    margin-left: 4px;
+    vertical-align: middle;
+    border: 1px solid var(--border);
+    object-fit: cover;
+}
+
+/* Header Controls */
+.header-controls {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.header-title-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+.header-title-group h2 {
+    margin: 0;
+    white-space: nowrap;
+}
+
+
+
+/* Transaction Link */
+.tx-link {
+    color: var(--accent); /* Bright green for visibility */
+    text-decoration: none;
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    border-bottom: 1px dotted var(--accent);
+    transition: all 0.2s;
+    padding: 2px 4px;
+}
+
+.tx-link:hover {
+    background: rgba(0, 255, 157, 0.1);
+    box-shadow: 0 0 8px rgba(0, 255, 157, 0.2);
+    border-bottom-style: solid;
 }
