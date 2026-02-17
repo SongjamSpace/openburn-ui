@@ -136,94 +136,135 @@ function renderTokenDetails(data) {
     });
 }
 
-function renderBurnHistory(burns) {
+function renderTransactionHistory(burns, claims) {
     ui.burnHistoryBody.innerHTML = "";
 
-    if (!burns || burns.length === 0) {
-        ui.burnHistoryBody.innerHTML = `<tr><td colspan="5" class="center">No recent burns found.</td></tr>`;
+    // Merge burns and claims into a single array with type indicator
+    const transactions = [];
+    
+    if (burns && burns.length > 0) {
+        burns.forEach(burn => {
+            transactions.push({
+                type: 'burn',
+                data: burn,
+                timestamp: burn.timestamp
+            });
+        });
+    }
+    
+    if (claims && claims.length > 0) {
+        claims.forEach(claim => {
+            transactions.push({
+                type: 'claim',
+                data: claim,
+                timestamp: claim.timestamp
+            });
+        });
+    }
+
+    if (transactions.length === 0) {
+        ui.burnHistoryBody.innerHTML = `<tr><td colspan="5" class="center">No recent transactions found.</td></tr>`;
         return;
     }
 
-    burns.forEach(burn => {
+    // Sort by timestamp (most recent first)
+    transactions.sort((a, b) => {
+        const timeA = a.timestamp?._seconds || 0;
+        const timeB = b.timestamp?._seconds || 0;
+        return timeB - timeA;
+    });
+
+    transactions.forEach(transaction => {
         const row = document.createElement("tr");
+        const isBurn = transaction.type === 'burn';
+        const data = transaction.data;
 
+        // Time Cell
         const timeCell = document.createElement("td");
-        timeCell.textContent = formatDate(burn.timestamp);
+        timeCell.textContent = formatDate(data.timestamp);
 
+        // Type Cell
+        const typeCell = document.createElement("td");
+        typeCell.textContent = isBurn ? "BURN" : "CLAIM";
+        typeCell.style.color = isBurn ? "#ff4444" : "#44ff44";
+        typeCell.style.fontWeight = "bold";
+
+        // Token Cell
         const tokenCell = document.createElement("td");
         
         // Make token clickable if we are in global view
         if (!currentToken) {
             const tokenAction = document.createElement("span");
             tokenAction.className = "token-action";
-            tokenAction.textContent = burn.tokenSymbol || "Unknown";
-            tokenAction.onclick = () => loadToken(burn.tokenAddress);
+            tokenAction.textContent = data.tokenSymbol || "Unknown";
+            tokenAction.onclick = () => loadToken(data.tokenAddress);
             tokenCell.appendChild(tokenAction);
         } else {
              // In token view, just show text 
-             tokenCell.textContent = burn.tokenSymbol || "Unknown";
+             tokenCell.textContent = data.tokenSymbol || "Unknown";
         }
 
         // Add Pump.fun link icon
         const tokenLink = document.createElement("a");
-        tokenLink.href = `https://pump.fun/${burn.tokenAddress}`;
+        tokenLink.href = `https://pump.fun/${data.tokenAddress}`;
         tokenLink.target = "_blank";
         tokenLink.className = "external-link-icon";
         tokenLink.innerHTML = " 💊"; // Pill icon for Pump.fun
         tokenLink.title = "View on Pump.fun";
         tokenCell.appendChild(tokenLink);
 
-
+        // Amount Cell
         const amountCell = document.createElement("td");
         amountCell.className = "right";
-        amountCell.textContent = formatNumber(burn.burnedTokens);
+        if (isBurn) {
+            amountCell.textContent = data.burnedTokens ? formatNumber(data.burnedTokens) : "-";
+        } else {
+            amountCell.textContent = "-"; // Claims don't have token amounts
+        }
 
+        // Value Cell
         const valueCell = document.createElement("td");
         valueCell.className = "right";
         
-        if (showSolValue) {
-            // If burnedSol is available, use it. Otherwise approximate if we have price?
-            // Assuming API might return 'amount' (raw units) or we have 'burnedValueUsd'.
-            // If we don't have direct SOL value, we can't accurately show it without price.
-            // Let's assume the API might give us a way or just show fallback.
-            // For now, if we don't have burnedSol, we might hide it or show "-"
-            // BUT user said: "if we have burn sol amount also"
-            if (burn.burnedSol) {
-                valueCell.textContent = formatSol(burn.burnedSol);
+        if (isBurn) {
+            // Burns show negative values in red
+            valueCell.style.color = "#ff4444";
+            if (showSolValue) {
+                if (data.burnedSol) {
+                    valueCell.textContent = "- " + formatSol(data.burnedSol);
+                } else {
+                     valueCell.textContent = "-";
+                }
             } else {
-                 valueCell.textContent = "-";
+                 valueCell.textContent = "- " + formatCurrency(parseFloat(data.burnedValueUsd || 0));
             }
         } else {
-             valueCell.textContent = formatCurrency(parseFloat(burn.burnedValueUsd || 0));
-        }
-
-
-        const linksCell = document.createElement("td");
-        linksCell.className = "center action-links";
-
-        if (burn.signature) {
-            const burnLink = document.createElement("a");
-            burnLink.href = `https://solscan.io/tx/${burn.signature}`;
-            burnLink.target = "_blank";
-            burnLink.textContent = "BURN";
-            burnLink.className = "btn-icon";
-            linksCell.appendChild(burnLink);
-        }
-
-        if (burn.feeCollectionSignature) {
-            const feeLink = document.createElement("a");
-            feeLink.href = `https://solscan.io/tx/${burn.feeCollectionSignature}`;
-            feeLink.target = "_blank";
-            feeLink.textContent = "FEE";
-            feeLink.className = "btn-icon";
-            linksCell.appendChild(feeLink);
+            // Claims show positive values in green
+            valueCell.style.color = "#44ff44";
+            if (showSolValue) {
+                if (data.feesCollected) {
+                    valueCell.textContent = "+ " + formatSol(parseFloat(data.feesCollected));
+                } else {
+                     valueCell.textContent = "-";
+                }
+            } else {
+                // For claims, we need to convert SOL to USD if we have price data
+                // For now, just show the SOL value converted to USD if possible
+                // Since we don't have USD value for claims, we'll show SOL value
+                if (data.feesCollected) {
+                    // We don't have USD conversion for claims, so show SOL value
+                    valueCell.textContent = "+ " + formatSol(parseFloat(data.feesCollected));
+                } else {
+                    valueCell.textContent = "-";
+                }
+            }
         }
 
         row.appendChild(timeCell);
+        row.appendChild(typeCell);
         row.appendChild(tokenCell);
         row.appendChild(amountCell);
         row.appendChild(valueCell);
-        row.appendChild(linksCell);
 
         ui.burnHistoryBody.appendChild(row);
     });
@@ -274,7 +315,7 @@ function toggleValueUnit() {
     // Since we don't store "lastData" globally, I'll just call fetchData again which is fast enough or store data.
     // Let's store data to avoid network hit.
     if (window.lastData) {
-        renderBurnHistory(window.lastData.recentBurns);
+        renderTransactionHistory(window.lastData.recentBurns, window.lastData.recentClaims);
     } else {
         fetchData();
     }
@@ -302,7 +343,7 @@ async function fetchData() {
         window.lastData = data;
         
         renderStats(data.stats);
-        renderBurnHistory(data.recentBurns);
+        renderTransactionHistory(data.recentBurns, data.recentClaims);
         
         if (currentToken) {
             renderTokenDetails(data);
