@@ -80,7 +80,7 @@ function formatDate(timestamp) {
 
 function renderStats(stats) {
     ui.totalValueBurned.textContent = formatSol(stats.totalSolBurned);
-    ui.totalTransactions.textContent = `${formatNumber(stats.totalTransactions)} Transactions`;
+    ui.totalTransactions.textContent = `${formatNumber(stats.totalTransactions)} Burns`;
 }
 
 function renderTokenDetails(data) {
