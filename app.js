@@ -397,6 +397,7 @@ function init() {
     renderBrandMatrix(APP_NAME);
     updateUIState();
     fetchData();
+    setInterval(fetchData, 60000);
 }
 
 init();
